@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole { 
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum ProductUnit {
+  KG
+  GRAM
+  PIECE
+  GR
+  ADET
+  PAKET
+  ML
+  LT
+  OTHER
+}
+
+model User { 
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  phone     String?
+  profileImageDataUrl String?
+  password  String
+  role      UserRole  @default(CUSTOMER)
+
+  orders    Order[]  
+  cartItems CartItem[]
+
+  createdAt DateTime  @default(now())
+}
+
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+
+  products  Product[]  
+
+  createdAt DateTime  @default(now())
+}
+
+model Unit {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String?  
+  imageUrl    String?
+  isActive    Boolean     @default(true)
+  price       Float
+  stock       Int
+  unit        ProductUnit
+  customUnit  String?
+
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+
+  createdAt   DateTime    @default(now())
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id         String       @id @default(uuid())
+
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+
+  status     OrderStatus  @default(PENDING)
+
+  items      OrderItem[]
+
+  totalPrice Float
+  note       String?
+
+  createdAt  DateTime     @default(now())
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+
+  quantity  Int
+  price     Float
+}
